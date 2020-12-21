@@ -27,34 +27,31 @@ Implementation Notes
 """
 
 from time import sleep
-import adafruit_bus_device.i2c_device as i2c_device
+from struct import unpack_from
 from micropython import const
-from adafruit_register.i2c_struct import ROUnaryStruct
+import adafruit_bus_device.i2c_device as i2c_device
+from adafruit_register.i2c_struct import ROUnaryStruct, Struct
+from adafruit_register.i2c_bits import RWBits
 from adafruit_register.i2c_bit import RWBit, ROBit
 
 __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_LTR390.git"
 
 _DEFAULT_I2C_ADDR = const(0x53)
-# _I2CADDR_DEFAULT = const(0x53) # I2C address
 _CTRL = const(0x00)  # Main control register
-# _MEAS_RATE = const(0x04)       # Resolution and data rate
-# _GAIN = const(0x05)            # ALS and UVS gain range
+_MEAS_RATE = const(0x04)  # Resolution and data rate
+_GAIN = const(0x05)  # ALS and UVS gain range
 _PART_ID = const(0x06)  # Part id/revision register
 _STATUS = const(0x07)  # Main status register
 # _ALSDATA = const(0x0D)         # ALS data lowest byte
-# _UVSDATA = const(0x10)         # UVS data lowest byte
+_UVSDATA = const(0x10)  # UVS data lowest byte
 # _INT_CFG = const(0x19)         # Interrupt configuration
 # _INT_PST = const(0x1A)         # Interrupt persistance config
 # _THRESH_UP = const(0x21)       # Upper threshold, low byte
 # _THRESH_LOW = const(0x24)      # Lower threshold, low byte
-# begin
-# reset
-# newDataAvailable
+
 # readALS
-# readUVS
-# enable
-# enabled
+
 # setMode
 # getMode
 # setGain
@@ -63,13 +60,47 @@ _STATUS = const(0x07)  # Main status register
 # getResolution
 # setThresholds
 # configInterrupt
+
+
+class UnalignedStruct(Struct):
+    """Class for reading multi-byte data registers with a data length less than the full bitwidth
+    of the registers. Most registers of this sort are left aligned to preserve the sign bit"""
+
+    def __init__(self, register_address, struct_format, bitwidth, length):
+        super().__init__(register_address, struct_format)
+        self._width = bitwidth
+        self._num_bytes = length
+
+    def __get__(self, obj, objtype=None):
+        # read bytes into buffer at correct alignment
+        with obj.i2c_device as i2c:
+            i2c.write_then_readinto(
+                self.buffer,
+                self.buffer,
+                out_start=0,
+                out_end=1,
+                in_start=2,  # right aligned
+                # in_end=4 # right aligned
+            )
+        raw_value = unpack_from(self.format, self.buffer, offset=1)[0]
+        return raw_value >> 8
+
+
 class LTR390:
     """Class to use the LTR390 Ambient Light and UV sensor"""
 
     _id_reg = ROUnaryStruct(_PART_ID, "<B")
     _reset = RWBit(_CTRL, 4)
     _enable = RWBit(_CTRL, 1)
+    _mode = RWBit(_CTRL, 3)
+    _gain = RWBits(3, _GAIN, 0)
+    _resolution = RWBits(3, _MEAS_RATE, 4)
     data_ready = ROBit(_STATUS, 3)
+
+    # _uvs_data = ROUnaryStruct(_UVSDATA, "")
+    # def __init__(self, register_address, struct_format, bitwidth, length):
+
+    _uvs_data = UnalignedStruct(_UVSDATA, "<I", 24, 3)
     """Ask the sensor if new data is available"""
 
     def __init__(self, i2c, address=_DEFAULT_I2C_ADDR):
@@ -79,11 +110,11 @@ class LTR390:
             raise RuntimeError("Unable to find LTR390; check your wiring")
 
         self.reset()
-
-        # StatusReg = new Adafruit_I2CRegister(i2c_dev, LTR390_MAIN_STATUS);
-        # DataReadyBit = new Adafruit_I2CRegisterBits(StatusReg, 1, 3);
-
-        # return true;
+        self._mode = 1  # UV index/UVS, ALS=0
+        self._gain = 1  # GAIN_3
+        self._resolution = 4  # RESOLUTION_16BIT
+        # ltr.setThresholds(100, 1000);
+        # ltr.configInterrupt(true, LTR390_MODE_UVS);
 
     def reset(self):
         """Reset the sensor to it's initial unconfigured state"""
@@ -94,7 +125,7 @@ class LTR390:
         except OSError:
             print("got expected OS error on reset")
 
-        sleep(0.010)
+        sleep(0.1)
         # check that reset is complete w/ the bit unset
         if self._reset:
             raise RuntimeError("Unable to reset sensor")
@@ -109,6 +140,6 @@ class LTR390:
     @property
     def uv_index(self):
         """The calculated UV Index"""
-        return 1000
+        return self._uvs_data
         # self._take_reading()
         # return ((self._uvacalc * self._uvaresp) + (self._uvbcalc * self._uvbresp)) / 2
