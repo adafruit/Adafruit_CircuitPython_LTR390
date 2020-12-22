@@ -10,7 +10,7 @@ i2c = busio.I2C(board.SCL, board.SDA)
 
 ltr = adafruit_ltr390.LTR390(i2c)
 while True:
-    print("UV Index:", ltr.uv_index)
-    time.sleep(1)
-    print("Ambient Light:", ltr.light)
-    time.sleep(1.0)
+    print("UV Index:", ltr.uv_index, "\t\tAmbient Light:", ltr.light)
+    # time.sleep(0.1)
+    # print("Ambient Light:", ltr.light)
+    time.sleep(0.1)
