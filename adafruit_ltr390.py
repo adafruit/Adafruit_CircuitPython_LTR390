@@ -156,17 +156,55 @@ class Resolution(CV):
 | :py:const:`Resolution.RESOLUTION_20BIT` | 20 bits                                              |
 +-----------------------------------------+------------------------------------------------------+
 
+
 """
 
 
 Resolution.add_values(
     (
-        ("RESOLUTION_20BIT", 0, "20", None),
-        ("RESOLUTION_19BIT", 1, "19", None),
-        ("RESOLUTION_18BIT", 2, "18", None),
-        ("RESOLUTION_17BIT", 3, "17", None),
-        ("RESOLUTION_16BIT", 4, "16", None),
-        ("RESOLUTION_13BIT", 5, "13", None),
+        ("RESOLUTION_20BIT", 0, "20 bits", None),
+        ("RESOLUTION_19BIT", 1, "19 bits", None),
+        ("RESOLUTION_18BIT", 2, "18 bits", None),
+        ("RESOLUTION_17BIT", 3, "17 bits", None),
+        ("RESOLUTION_16BIT", 4, "16 bits", None),
+        ("RESOLUTION_13BIT", 5, "13 bits", None),
+    )
+)
+
+
+class MeasurementDelay(CV):
+    """Options for `measurement_delay`
+
++-------------------------------------------+--------------------------------------+
+| MeasurementDelay                          | Time Between Measurement Cycles (ms) |
++===========================================+======================================+
+| :py:const:`MeasurementDelay.DELAY_25MS`   | 25                                   |
++-------------------------------------------+--------------------------------------+
+| :py:const:`MeasurementDelay.DELAY_50MS`   | 50                                   |
++-------------------------------------------+--------------------------------------+
+| :py:const:`MeasurementDelay.DELAY_100MS`  | 100                                  |
++-------------------------------------------+--------------------------------------+
+| :py:const:`MeasurementDelay.DELAY_200MS`  | 200                                  |
++-------------------------------------------+--------------------------------------+
+| :py:const:`MeasurementDelay.DELAY_500MS`  | 500                                  |
++-------------------------------------------+--------------------------------------+
+| :py:const:`MeasurementDelay.DELAY_1000MS` | 1000                                 |
++-------------------------------------------+--------------------------------------+
+| :py:const:`MeasurementDelay.DELAY_2000MS` | 2000                                 |
++-------------------------------------------+--------------------------------------+
+
+    """
+
+
+MeasurementDelay.add_values(
+    (
+        ("DELAY_25MS", 0, "25", None),
+        ("DELAY_50MS", 1, "50", None),
+        ("DELAY_100MS", 2, "100", None),
+        ("DELAY_200MS", 3, "200", None),
+        ("DELAY_500MS", 4, "500", None),
+        ("DELAY_1000MS", 5, "1000", None),
+        ("DELAY_2000MS", 6, "2000", None),
     )
 )
 
@@ -181,6 +219,8 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
 
     _gain_bits = RWBits(3, _GAIN, 0)
     _resolution_bits = RWBits(3, _MEAS_RATE, 4)
+    _measurement_delay_bits = RWBits(3, _MEAS_RATE, 0)
+    _rate_bits = RWBits(3, _MEAS_RATE, 4)
     _int_src_bits = RWBits(2, _INT_CFG, 4)
     _int_persistance_bits = RWBits(4, _INT_PST, 4)
 
@@ -308,3 +348,15 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
         else:
             raise AttributeError("interrupt source must be UV or ALS")
         self._int_persistance_bits = persistance
+
+    @property
+    def measurement_delay(self):
+        """The delay between measurements. This can be used to set the measurement rate which
+        affects the sensors power usage."""
+        return self._measurement_delay_bits
+
+    @measurement_delay.setter
+    def measurement_delay(self, value):
+        if not MeasurementDelay.is_valid(value):
+            raise AttributeError("measurement_delay must be a MeasurementDelay")
+        self._measurement_delay_bits = value
