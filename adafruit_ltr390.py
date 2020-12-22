@@ -147,12 +147,8 @@ class LTR390:
         if self._mode_cache != 1:
             self._mode = 1
             self._mode_cache = 1
-            sleep(0.1)
-        # if self._mode != 1:
-        #     self._mode = 1
-        #     sleep(0.1)
+            sleep(0.030)
         while not self.data_ready:
-            print("UVsleep")
             sleep(0.010)
         return self._uvs_data
 
@@ -162,11 +158,7 @@ class LTR390:
         if self._mode_cache != 0:
             self._mode = 0
             self._mode_cache = 0
-            sleep(0.1)
-        # if self._mode != 0:
-        #     self._mode = 0
-        #     sleep(0.1)
+            sleep(0.030)
         while not self.data_ready:
-            print("\t light DRsleep")
             sleep(0.010)
         return self._als_data
