@@ -27,7 +27,7 @@ Table of Contents
 .. toctree::
     :caption: Related Products
 
-    * Adafruit LTR390 Breakout <https://www.adafruit.com/product/38XX>`_
+    Adafruit LTR390 Breakout <https://www.adafruit.com/product/38XX>
 
 .. toctree::
     :caption: Other Links
