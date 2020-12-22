@@ -107,7 +107,23 @@ class CV:
 
 
 class Gain(CV):
-    """Options for `gain`"""
+    """Options for `gain`
+
++---------------------------+----------------------------+
+| Gain                      | Raw Measurement Multiplier |
++===========================+============================+
+| :py:const:`Gain.GAIN_1X`  | 1                          |
++---------------------------+----------------------------+
+| :py:const:`Gain.GAIN_3X`  | 3                          |
++---------------------------+----------------------------+
+| :py:const:`Gain.GAIN_6X`  | 6                          |
++---------------------------+----------------------------+
+| :py:const:`Gain.GAIN_9X`  | 9                          |
++---------------------------+----------------------------+
+| :py:const:`Gain.GAIN_18X` | 18                         |
++---------------------------+----------------------------+
+
+    """
 
 
 Gain.add_values(
@@ -122,7 +138,25 @@ Gain.add_values(
 
 
 class Resolution(CV):
-    """Options for `resolution`"""
+    """Options for `resolution`
+
++-----------------------------------------+------------------------------------------------------+
+| Resolution                              | Internal ADC Resolution                              |
++=========================================+======================================================+
+| :py:const:`Resolution.RESOLUTION_13BIT` | 13 bits                                              |
++-----------------------------------------+------------------------------------------------------+
+| :py:const:`Resolution.RESOLUTION_16BIT` | 16 bits                                              |
++-----------------------------------------+------------------------------------------------------+
+| :py:const:`Resolution.RESOLUTION_17BIT` | 17 bits                                              |
++-----------------------------------------+------------------------------------------------------+
+| :py:const:`Resolution.RESOLUTION_18BIT` | 18 bits                                              |
++-----------------------------------------+------------------------------------------------------+
+| :py:const:`Resolution.RESOLUTION_19BIT` | 19 bits                                              |
++-----------------------------------------+------------------------------------------------------+
+| :py:const:`Resolution.RESOLUTION_20BIT` | 20 bits                                              |
++-----------------------------------------+------------------------------------------------------+
+
+"""
 
 
 Resolution.add_values(
@@ -259,9 +293,10 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
 
     def enable_alerts(self, enable, source, persistance):
         """The configuraiton of alerts raised by the sensor
-        *  @param  enable Whether the interrupt output is enabled
-        *  @param  source Whether to use the ALS or UVS data register to compare
-        *  @param  persistance The number of consecutive out-of-range readings before
+
+        :param enable: Whether the interrupt output is enabled
+        :param source: Whether to use the ALS or UVS data register to compare
+        :param persistance: The number of consecutive out-of-range readings before
         """
         self._int_enable_bit = enable
         if not enable:
