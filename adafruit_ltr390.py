@@ -27,7 +27,7 @@ Implementation Notes
 """
 
 from time import sleep
-from struct import unpack_from
+from struct import unpack_from, pack_into
 from micropython import const
 import adafruit_bus_device.i2c_device as i2c_device
 from adafruit_register.i2c_struct import ROUnaryStruct, Struct
@@ -45,23 +45,13 @@ _PART_ID = const(0x06)  # Part id/revision register
 _STATUS = const(0x07)  # Main status register
 _ALSDATA = const(0x0D)  # ALS data lowest byte
 _UVSDATA = const(0x10)  # UVS data lowest byte
-_ALS = 0
-_UV = 1
-# _INT_CFG = const(0x19)         # Interrupt configuration
-# _INT_PST = const(0x1A)         # Interrupt persistance config
-# _THRESH_UP = const(0x21)       # Upper threshold, low byte
-# _THRESH_LOW = const(0x24)      # Lower threshold, low byte
+_INT_CFG = const(0x19)  # Interrupt configuration
+_INT_PST = const(0x1A)  # Interrupt persistance config
+_THRESH_UP = const(0x21)  # Upper threshold, low byte
+_THRESH_LOW = const(0x24)  # Lower threshold, low byte
 
-# readALS
-
-# setMode
-# getMode
-# setGain
-# getGain
-# setResolution
-# getResolution
-# setThresholds
-# configInterrupt
+ALS = 0
+UV = 1
 
 
 class UnalignedStruct(Struct):
@@ -75,6 +65,8 @@ class UnalignedStruct(Struct):
 
     def __get__(self, obj, objtype=None):
         # read bytes into buffer at correct alignment
+        raw_value = unpack_from(self.format, self.buffer, offset=1)[0]
+
         with obj.i2c_device as i2c:
             i2c.write_then_readinto(
                 self.buffer,
@@ -86,6 +78,11 @@ class UnalignedStruct(Struct):
             )
         raw_value = unpack_from(self.format, self.buffer, offset=1)[0]
         return raw_value >> 8
+
+    def __set__(self, obj, value):
+        pack_into(self.format, self.buffer, 1, value)
+        with obj.i2c_device as i2c:
+            i2c.write(self.buffer)
 
 
 class CV:
@@ -140,15 +137,18 @@ Resolution.add_values(
 )
 
 
-class LTR390:
+class LTR390:  # pylint:disable=too-many-instance-attributes
     """Class to use the LTR390 Ambient Light and UV sensor"""
 
     _reset_bit = RWBit(_CTRL, 4)
     _enable_bit = RWBit(_CTRL, 1)
     _mode_bit = RWBit(_CTRL, 3)
+    _int_enable_bit = RWBit(_INT_CFG, 2)
 
     _gain_bits = RWBits(3, _GAIN, 0)
     _resolution_bits = RWBits(3, _MEAS_RATE, 4)
+    _int_src_bits = RWBits(2, _INT_CFG, 4)
+    _int_persistance_bits = RWBits(4, _INT_PST, 4)
 
     _id_reg = ROUnaryStruct(_PART_ID, "<B")
     _uvs_data_reg = UnalignedStruct(_UVSDATA, "<I", 24, 3)
@@ -156,6 +156,16 @@ class LTR390:
 
     data_ready = ROBit(_STATUS, 3)
     """Ask the sensor if new data is available"""
+    high_threshold = UnalignedStruct(_THRESH_UP, "<I", 24, 3)
+    """When the measured value is more than the low_threshold, the sensor will raise an alert"""
+
+    low_threshold = UnalignedStruct(_THRESH_LOW, "<I", 24, 3)
+    """When the measured value is less than the low_threshold, the sensor will raise an alert"""
+
+    threshold_passed = ROBit(_STATUS, 4)
+    """The status of any configured alert. If True, a threshold has been passed.
+
+    Once read, this property will be False until it is updated in the next measurement cycle"""
 
     def __init__(self, i2c, address=_DEFAULT_I2C_ADDR):
         self.i2c_device = i2c_device.I2CDevice(i2c, address)
@@ -174,11 +184,13 @@ class LTR390:
         self._enable_bit = True
         if not self._enable_bit:
             raise RuntimeError("Unable to enable sensor")
-        self._mode = _UV
+        self._mode = UV
         self.gain = Gain.GAIN_3X  # pylint:disable=no-member
         self.resolution = Resolution.RESOLUTION_16BIT  # pylint:disable=no-member
 
         # ltr.setThresholds(100, 1000);
+        # self.low_threshold = 100
+        # self.high_threshold = 1000
         # ltr.configInterrupt(true, LTR390_MODE_UVS);
 
     def _reset(self):
@@ -199,8 +211,8 @@ class LTR390:
 
     @_mode.setter
     def _mode(self, value):
-        if not value in [_ALS, _UV]:
-            raise AttributeError("Mode must be _ALS or _UV")
+        if not value in [ALS, UV]:
+            raise AttributeError("Mode must be ALS or UV")
         if self._mode_cache != value:
             self._mode_bit = value
             self._mode_cache = value
@@ -210,7 +222,7 @@ class LTR390:
     @property
     def uv_index(self):
         """The calculated UV Index"""
-        self._mode = _UV
+        self._mode = UV
         while not self.data_ready:
             sleep(0.010)
         return self._uvs_data_reg
@@ -218,7 +230,7 @@ class LTR390:
     @property
     def light(self):
         """The currently measured ambient light level"""
-        self._mode = _ALS
+        self._mode = ALS
         while not self.data_ready:
             sleep(0.010)
         return self._als_data_reg
@@ -244,3 +256,20 @@ class LTR390:
         if not Resolution.is_valid(value):
             raise AttributeError("resolution must be a Resolution")
         self._resolution_bits = value
+
+    def enable_alerts(self, enable, source, persistance):
+        """The configuraiton of alerts raised by the sensor
+        *  @param  enable Whether the interrupt output is enabled
+        *  @param  source Whether to use the ALS or UVS data register to compare
+        *  @param  persistance The number of consecutive out-of-range readings before
+        """
+        self._int_enable_bit = enable
+        if not enable:
+            return
+        if source == ALS:
+            self._int_src_bits = 1
+        elif source == UV:
+            self._int_src_bits = 3
+        else:
+            raise AttributeError("interrupt source must be UV or ALS")
+        self._int_persistance_bits = persistance
