@@ -293,8 +293,8 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
 
     # something is wrong here; I had to add a sleep to the loop to get both to update correctly
     @property
-    def uv_index(self):
-        """The calculated UV Index"""
+    def uvs(self):
+        """The calculated UV value"""
         self._mode = UV
         while not self.data_ready:
             sleep(0.010)

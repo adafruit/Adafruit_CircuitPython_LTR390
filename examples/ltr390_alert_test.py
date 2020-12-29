@@ -18,7 +18,7 @@ ltr.enable_alerts(True, UV, 1)
 while True:
 
     if ltr.threshold_passed:
-        print("UV Index:", ltr.uv_index)
+        print("UV:", ltr.uvs)
         print("threshold", THRESHOLD_VALUE, "passed!")
         print("")
     else:

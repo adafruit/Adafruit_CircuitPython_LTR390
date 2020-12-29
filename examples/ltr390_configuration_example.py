@@ -22,7 +22,7 @@ print("Measurement gain is", Gain.string[ltr.gain])
 print("Measurement delay is", MeasurementDelay.string[ltr.measurement_delay])
 print("")
 while True:
-    print("UV Index:", ltr.uv_index, "\t\tAmbient Light:", ltr.light)
+    print("UV:", ltr.uvs, "\t\tAmbient Light:", ltr.light)
 
     # for shorter measurement delays you may need to make this sleep shorter to see a change
     time.sleep(1.0)
