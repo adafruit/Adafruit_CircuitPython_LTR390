@@ -93,12 +93,16 @@ class CV:
         """Add CV values to the class"""
         cls.string = {}
         cls.lsb = {}
+        cls.factor = {}  # Scale or bit resolution factor
+        cls.integration = {}  # Lux data integration factor
 
         for value_tuple in value_tuples:
-            name, value, string, lsb = value_tuple
+            name, value, string, lsb, factor, integration = value_tuple
             setattr(cls, name, value)
             cls.string[value] = string
             cls.lsb[value] = lsb
+            cls.factor[value] = factor
+            cls.integration[value] = integration
 
     @classmethod
     def is_valid(cls, value):
@@ -128,11 +132,11 @@ class Gain(CV):
 
 Gain.add_values(
     (
-        ("GAIN_1X", 0, "1X", None),
-        ("GAIN_3X", 1, "3X", None),
-        ("GAIN_6X", 2, "6X", None),
-        ("GAIN_9X", 3, "9X", None),
-        ("GAIN_18X", 4, "18X", None),
+        ("GAIN_1X", 0, "1X", None, 1, None),
+        ("GAIN_3X", 1, "3X", None, 3, None),
+        ("GAIN_6X", 2, "6X", None, 6, None),
+        ("GAIN_9X", 3, "9X", None, 9, None),
+        ("GAIN_18X", 4, "18X", None, 18, None),
     )
 )
 
@@ -161,12 +165,12 @@ class Resolution(CV):
 
 Resolution.add_values(
     (
-        ("RESOLUTION_20BIT", 0, "20 bits", None),
-        ("RESOLUTION_19BIT", 1, "19 bits", None),
-        ("RESOLUTION_18BIT", 2, "18 bits", None),
-        ("RESOLUTION_17BIT", 3, "17 bits", None),
-        ("RESOLUTION_16BIT", 4, "16 bits", None),
-        ("RESOLUTION_13BIT", 5, "13 bits", None),
+        ("RESOLUTION_20BIT", 0, "20 bits", None, 20, 4.0),
+        ("RESOLUTION_19BIT", 1, "19 bits", None, 19, 2.0),
+        ("RESOLUTION_18BIT", 2, "18 bits", None, 18, 1.0),
+        ("RESOLUTION_17BIT", 3, "17 bits", None, 17, 0.5),
+        ("RESOLUTION_16BIT", 4, "16 bits", None, 16, 0.25),
+        ("RESOLUTION_13BIT", 5, "13 bits", None, 13, 0.03125),
     )
 )
 
@@ -197,13 +201,13 @@ class MeasurementDelay(CV):
 
 MeasurementDelay.add_values(
     (
-        ("DELAY_25MS", 0, "25", None),
-        ("DELAY_50MS", 1, "50", None),
-        ("DELAY_100MS", 2, "100", None),
-        ("DELAY_200MS", 3, "200", None),
-        ("DELAY_500MS", 4, "500", None),
-        ("DELAY_1000MS", 5, "1000", None),
-        ("DELAY_2000MS", 6, "2000", None),
+        ("DELAY_25MS", 0, "25", None, 25, None),
+        ("DELAY_50MS", 1, "50", None, 50, None),
+        ("DELAY_100MS", 2, "100", None, 100, None),
+        ("DELAY_200MS", 3, "200", None, 200, None),
+        ("DELAY_500MS", 4, "500", None, 500, None),
+        ("DELAY_1000MS", 5, "1000", None, 1000, None),
+        ("DELAY_2000MS", 6, "2000", None, 2000, None),
     )
 )
 
@@ -260,6 +264,7 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
         self._mode = UV
         self.gain = Gain.GAIN_3X  # pylint:disable=no-member
         self.resolution = Resolution.RESOLUTION_16BIT  # pylint:disable=no-member
+        self._window_factor = 1  # default window transmission factor
 
         # ltr.setThresholds(100, 1000);
         # self.low_threshold = 100
@@ -331,7 +336,7 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
         self._resolution_bits = value
 
     def enable_alerts(self, enable, source, persistance):
-        """The configuraiton of alerts raised by the sensor
+        """The configuration of alerts raised by the sensor
 
         :param enable: Whether the interrupt output is enabled
         :param source: Whether to use the ALS or UVS data register to compare
@@ -351,7 +356,7 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
     @property
     def measurement_delay(self):
         """The delay between measurements. This can be used to set the measurement rate which
-        affects the sensors power usage."""
+        affects the sensor power usage."""
         return self._measurement_delay_bits
 
     @measurement_delay.setter
@@ -359,3 +364,41 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
         if not MeasurementDelay.is_valid(value):
             raise AttributeError("measurement_delay must be a MeasurementDelay")
         self._measurement_delay_bits = value
+
+    @property
+    def uvi(self):
+        """Read UV count and return calculated UV Index (UVI) value based upon the rated sensitivity
+        of 1 UVI per 2300 counts at 18X gain factor and 20-bit resolution."""
+        return (
+            self.uvs
+            / (
+                (Gain.factor[self.gain] / 18)
+                * (2 ** Resolution.factor[self.resolution])
+                / (2 ** 20)
+                * 2300
+            )
+            * self._window_factor
+        )
+
+    @property
+    def lux(self):
+        """Read light level and return calculated Lux value."""
+        return (
+            (self.light * 0.6)
+            / (Gain.factor[self.gain] * Resolution.integration[self.resolution])
+        ) * self._window_factor
+
+    @property
+    def window_factor(self):
+        """Window transmission factor (Wfac) for UVI and Lux calculations.
+        A factor of 1 (default) represents no window or clear glass; > 1 for a tinted window.
+        Factor of > 1 requires an emperical calibration with a reference light source."""
+        return self._window_factor
+
+    @window_factor.setter
+    def window_factor(self, factor=1):
+        if factor < 1:
+            raise ValueError(
+                "window transmission factor must be a value of 1.0 or greater"
+            )
+        self._window_factor = factor
