@@ -4,12 +4,11 @@
 # pylint:disable=unused-import
 import time
 import board
-import busio
 from adafruit_ltr390 import LTR390, UV, ALS
 
 THRESHOLD_VALUE = 100
 
-i2c = busio.I2C(board.SCL, board.SDA)
+i2c = board.I2C()
 ltr = LTR390(i2c)
 
 ltr.high_threshold = THRESHOLD_VALUE

@@ -64,11 +64,9 @@ Usage Example
 
     import time
     import board
-    import busio
     import adafruit_ltr390
 
-    i2c = busio.I2C(board.SCL, board.SDA)
-
+    i2c = board.I2C()
     ltr = adafruit_ltr390.LTR390(i2c)
 
     while True:

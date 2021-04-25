@@ -23,11 +23,12 @@ Table of Contents
 .. toctree::
     :caption: Tutorials
 
+    Adafruit LTR390 UV Light Sensor Breakout Learning Guide <https://learn.adafruit.com/adafruit-ltr390-uv-sensor>
 
 .. toctree::
     :caption: Related Products
 
-    Adafruit LTR390 Breakout <https://www.adafruit.com/product/38XX>
+    Adafruit LTR390 UV Light Sensor Breakout <https://www.adafruit.com/product/4831>
 
 .. toctree::
     :caption: Other Links

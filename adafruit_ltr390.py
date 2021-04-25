@@ -16,12 +16,14 @@ Implementation Notes
 
 **Hardware:**
 
-* Adafruit LTR390 Breakout <https://www.adafruit.com/product/38XX>`_
+* Adafruit `Adafruit LTR390 UV Light Sensor
+  <https://www.adafruit.com/product/4831>`_ (Product ID: 4831)
 
 **Software and Dependencies:**
 
 * Adafruit CircuitPython firmware for the supported boards:
-  https://github.com/adafruit/circuitpython/releases
+  https://circuitpython.org/downloads
+
 * Adafruit's Bus Device library: https://github.com/adafruit/Adafruit_CircuitPython_BusDevice
 * Adafruit's Register library: https://github.com/adafruit/Adafruit_CircuitPython_Register
 """
@@ -213,7 +215,37 @@ MeasurementDelay.add_values(
 
 
 class LTR390:  # pylint:disable=too-many-instance-attributes
-    """Class to use the LTR390 Ambient Light and UV sensor"""
+    """Class to use the LTR390 Ambient Light and UV sensor
+
+    :param ~busio.I2C i2c: The I2C bus the LTR390 is connected to.
+    :param int address: The I2C device address. Defaults to :const:`0x53`
+
+
+    **Quickstart: Importing and using the LTR390**
+
+        Here is an example of using the :class:`LTR390` class.
+        First you will need to import the libraries to use the sensor
+
+        .. code-block:: python
+
+            import board
+            import adafruit_ltr390
+
+        Once this is done you can define your `board.I2C` object and define your sensor object
+
+        .. code-block:: python
+
+            i2c = board.I2C()  # uses board.SCL and board.SDA
+            ltr = adafruit_ltr390.LTR390(i2c)
+
+        Now you have access to the :attr:`lux` and :attr:`light` attributes
+
+        .. code-block:: python
+
+            lux = ltr.lux
+            light = ltr.light
+
+    """
 
     _reset_bit = RWBit(_CTRL, 4)
     _enable_bit = RWBit(_CTRL, 1)
@@ -392,7 +424,7 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
     def window_factor(self):
         """Window transmission factor (Wfac) for UVI and Lux calculations.
         A factor of 1 (default) represents no window or clear glass; > 1 for a tinted window.
-        Factor of > 1 requires an emperical calibration with a reference light source."""
+        Factor of > 1 requires an empirical calibration with a reference light source."""
         return self._window_factor
 
     @window_factor.setter

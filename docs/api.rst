@@ -6,3 +6,4 @@
 
 .. automodule:: adafruit_ltr390
    :members:
+   :exclude-members: UnalignedStruct, CV
