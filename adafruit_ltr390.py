@@ -304,16 +304,16 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
         # ltr.configInterrupt(true, LTR390_MODE_UVS);
 
     def _reset(self):
-        try:
-            self._reset_bit = True
-        except OSError:
-            # The write to the reset bit will fail because it seems to not ACK before it resets
-            pass
-
-        sleep(0.1)
-        # check that reset is complete w/ the bit unset
-        if self._reset_bit:
-            raise RuntimeError("Unable to reset sensor")
+        # The LTR390 software reset is ill behaved and can leave I2C bus in bad state.
+        # Instead, just manually set register reset values per datasheet.
+        with self.i2c_device as i2c:
+            i2c.write(bytes([_CTRL, 0x00]))
+            i2c.write(bytes([_MEAS_RATE, 0x22]))
+            i2c.write(bytes([_GAIN, 0x01]))
+            i2c.write(bytes([_INT_CFG, 0x10]))
+            i2c.write(bytes([_INT_PST, 0x00]))
+            i2c.write(bytes([_THRESH_UP, 0xFF, 0xFF, 0x0F]))
+            i2c.write(bytes([_THRESH_LOW, 0x00, 0x00, 0x00]))
 
     @property
     def _mode(self):
