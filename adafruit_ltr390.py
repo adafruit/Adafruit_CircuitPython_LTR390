@@ -406,7 +406,7 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
             / (
                 (Gain.factor[self.gain] / 18)
                 * (2 ** Resolution.factor[self.resolution])
-                / (2 ** 20)
+                / (2**20)
                 * 2300
             )
             * self._window_factor
