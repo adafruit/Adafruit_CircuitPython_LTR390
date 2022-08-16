@@ -12,7 +12,7 @@ requires = [
 [project]
 name = "adafruit-circuitpython-ltr390"
 description = "Adafruit CircuitPython library for the LTR390"
-version = "0.0.0-auto.0"
+version = "0.0.0+auto.0"
 readme = "README.rst"
 authors = [
     {name = "Adafruit Industries", email = "circuitpython@adafruit.com"}
