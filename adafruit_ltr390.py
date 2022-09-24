@@ -37,8 +37,7 @@ from adafruit_register.i2c_bits import RWBits
 from adafruit_register.i2c_bit import RWBit, ROBit
 
 try:
-    from typing import Optional, Tuple, Type, Union
-    from typing_extensions import Literal
+    from typing import Optional, Tuple, Type
     from busio import I2C
 except ImportError:
     pass
@@ -74,8 +73,8 @@ class UnalignedStruct(Struct):
 
     def __get__(
         self,
-        obj: Optional["UnalignedStruct"],
-        objtype: Optional[Type["UnalignedStruct"]] = None,
+        obj: Optional["LTR390"],
+        objtype: Optional[Type["LTR390"]] = None,
     ) -> int:
         # read bytes into buffer at correct alignment
         raw_value = unpack_from(self.format, self.buffer, offset=1)[0]
@@ -92,7 +91,7 @@ class UnalignedStruct(Struct):
         raw_value = unpack_from(self.format, self.buffer, offset=1)[0]
         return raw_value >> 8
 
-    def __set__(self, obj: Optional["UnalignedStruct"], value: int) -> None:
+    def __set__(self, obj: Optional["LTR390"], value: int) -> None:
         pack_into(self.format, self.buffer, 1, value)
         with obj.i2c_device as i2c:
             i2c.write(self.buffer)
@@ -104,7 +103,7 @@ class CV:
     @classmethod
     def add_values(
         cls,
-        value_tuples: Tuple[str, int, str, Union[int, None], int, Union[float, None]],
+        value_tuples: Tuple[str, int, str, Optional[float], int, Optional[float]],
     ) -> None:
         """Add CV values to the class"""
         cls.string = {}
@@ -330,11 +329,11 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
             i2c.write(bytes((_THRESH_LOW, 0x00, 0x00, 0x00)))
 
     @property
-    def _mode(self) -> Literal[0, 1]:
+    def _mode(self) -> bool:
         return self._mode_bit
 
     @_mode.setter
-    def _mode(self, value: Literal[0, 1]) -> None:
+    def _mode(self, value: bool) -> None:
         if not value in [ALS, UV]:
             raise AttributeError("Mode must be ALS or UV")
         if self._mode_cache != value:
@@ -381,9 +380,7 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
             raise AttributeError("resolution must be a Resolution")
         self._resolution_bits = value
 
-    def enable_alerts(
-        self, enable: bool, source: Literal[0, 1], persistance: int
-    ) -> None:
+    def enable_alerts(self, enable: bool, source: bool, persistance: int) -> None:
         """The configuration of alerts raised by the sensor
 
         :param enable: Whether the interrupt output is enabled
@@ -444,7 +441,7 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
         return self._window_factor
 
     @window_factor.setter
-    def window_factor(self, factor: float = 1):
+    def window_factor(self, factor: float = 1) -> None:
         if factor < 1:
             raise ValueError(
                 "window transmission factor must be a value of 1.0 or greater"
