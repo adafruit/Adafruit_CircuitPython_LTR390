@@ -37,7 +37,7 @@ from adafruit_register.i2c_bits import RWBits
 from adafruit_register.i2c_bit import RWBit, ROBit
 
 try:
-    from typing import Optional, Tuple, Type
+    from typing import Iterable, Optional, Tuple, Type
     from busio import I2C
 except ImportError:
     pass
@@ -103,7 +103,9 @@ class CV:
     @classmethod
     def add_values(
         cls,
-        value_tuples: Tuple[str, int, str, Optional[float], int, Optional[float]],
+        value_tuples: Iterable[
+            Tuple[str, int, str, Optional[float], int, Optional[float]]
+        ],
     ) -> None:
         """Add CV values to the class"""
         cls.string = {}
