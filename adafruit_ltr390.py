@@ -36,6 +36,12 @@ from adafruit_register.i2c_struct import ROUnaryStruct, Struct
 from adafruit_register.i2c_bits import RWBits
 from adafruit_register.i2c_bit import RWBit, ROBit
 
+try:
+    from typing import Iterable, Optional, Tuple, Type
+    from busio import I2C
+except ImportError:
+    pass
+
 __version__ = "0.0.0+auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_LTR390.git"
 
@@ -65,7 +71,11 @@ class UnalignedStruct(Struct):
         self._width = bitwidth
         self._num_bytes = length
 
-    def __get__(self, obj, objtype=None):
+    def __get__(
+        self,
+        obj: Optional["LTR390"],
+        objtype: Optional[Type["LTR390"]] = None,
+    ) -> int:
         # read bytes into buffer at correct alignment
         raw_value = unpack_from(self.format, self.buffer, offset=1)[0]
 
@@ -81,7 +91,7 @@ class UnalignedStruct(Struct):
         raw_value = unpack_from(self.format, self.buffer, offset=1)[0]
         return raw_value >> 8
 
-    def __set__(self, obj, value):
+    def __set__(self, obj: Optional["LTR390"], value: int) -> None:
         pack_into(self.format, self.buffer, 1, value)
         with obj.i2c_device as i2c:
             i2c.write(self.buffer)
@@ -91,7 +101,12 @@ class CV:
     """struct helper"""
 
     @classmethod
-    def add_values(cls, value_tuples):
+    def add_values(
+        cls,
+        value_tuples: Iterable[
+            Tuple[str, int, str, Optional[float], int, Optional[float]]
+        ],
+    ) -> None:
         """Add CV values to the class"""
         cls.string = {}
         cls.lsb = {}
@@ -107,7 +122,7 @@ class CV:
             cls.integration[value] = integration
 
     @classmethod
-    def is_valid(cls, value):
+    def is_valid(cls, value: int) -> bool:
         """Validate that a given value is a member"""
         return value in cls.string
 
@@ -276,7 +291,7 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
 
     Once read, this property will be False until it is updated in the next measurement cycle"""
 
-    def __init__(self, i2c, address=_DEFAULT_I2C_ADDR):
+    def __init__(self, i2c: I2C, address: int = _DEFAULT_I2C_ADDR) -> None:
         self.i2c_device = i2c_device.I2CDevice(i2c, address)
         if self._id_reg != 0xB2:
 
@@ -285,7 +300,7 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
         self._mode_cache = None
         self.initialize()
 
-    def initialize(self):
+    def initialize(self) -> None:
         """Reset the sensor to it's initial unconfigured state and configure it with sensible
         defaults so it can be used"""
 
@@ -303,7 +318,7 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
         # self.high_threshold = 1000
         # ltr.configInterrupt(true, LTR390_MODE_UVS);
 
-    def _reset(self):
+    def _reset(self) -> None:
         # The LTR390 software reset is ill behaved and can leave I2C bus in bad state.
         # Instead, just manually set register reset values per datasheet.
         with self.i2c_device as i2c:
@@ -316,11 +331,11 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
             i2c.write(bytes((_THRESH_LOW, 0x00, 0x00, 0x00)))
 
     @property
-    def _mode(self):
+    def _mode(self) -> bool:
         return self._mode_bit
 
     @_mode.setter
-    def _mode(self, value):
+    def _mode(self, value: bool) -> None:
         if not value in [ALS, UV]:
             raise AttributeError("Mode must be ALS or UV")
         if self._mode_cache != value:
@@ -330,7 +345,7 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
 
     # something is wrong here; I had to add a sleep to the loop to get both to update correctly
     @property
-    def uvs(self):
+    def uvs(self) -> int:
         """The calculated UV value"""
         self._mode = UV
         while not self.data_ready:
@@ -338,7 +353,7 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
         return self._uvs_data_reg
 
     @property
-    def light(self):
+    def light(self) -> int:
         """The currently measured ambient light level"""
         self._mode = ALS
         while not self.data_ready:
@@ -346,28 +361,28 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
         return self._als_data_reg
 
     @property
-    def gain(self):
+    def gain(self) -> int:
         """The amount of gain the raw measurements are multiplied by"""
         return self._gain_bits
 
     @gain.setter
-    def gain(self, value):
+    def gain(self, value: int):
         if not Gain.is_valid(value):
             raise AttributeError("gain must be a Gain")
         self._gain_bits = value
 
     @property
-    def resolution(self):
+    def resolution(self) -> int:
         """Set the precision of the internal ADC used to read the light measurements"""
         return self._resolution_bits
 
     @resolution.setter
-    def resolution(self, value):
+    def resolution(self, value: int):
         if not Resolution.is_valid(value):
             raise AttributeError("resolution must be a Resolution")
         self._resolution_bits = value
 
-    def enable_alerts(self, enable, source, persistance):
+    def enable_alerts(self, enable: bool, source: bool, persistance: int) -> None:
         """The configuration of alerts raised by the sensor
 
         :param enable: Whether the interrupt output is enabled
@@ -386,19 +401,19 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
         self._int_persistance_bits = persistance
 
     @property
-    def measurement_delay(self):
+    def measurement_delay(self) -> int:
         """The delay between measurements. This can be used to set the measurement rate which
         affects the sensor power usage."""
         return self._measurement_delay_bits
 
     @measurement_delay.setter
-    def measurement_delay(self, value):
+    def measurement_delay(self, value: int) -> None:
         if not MeasurementDelay.is_valid(value):
             raise AttributeError("measurement_delay must be a MeasurementDelay")
         self._measurement_delay_bits = value
 
     @property
-    def uvi(self):
+    def uvi(self) -> float:
         """Read UV count and return calculated UV Index (UVI) value based upon the rated sensitivity
         of 1 UVI per 2300 counts at 18X gain factor and 20-bit resolution."""
         return (
@@ -413,7 +428,7 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
         )
 
     @property
-    def lux(self):
+    def lux(self) -> float:
         """Read light level and return calculated Lux value."""
         return (
             (self.light * 0.6)
@@ -421,14 +436,14 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
         ) * self._window_factor
 
     @property
-    def window_factor(self):
+    def window_factor(self) -> float:
         """Window transmission factor (Wfac) for UVI and Lux calculations.
         A factor of 1 (default) represents no window or clear glass; > 1 for a tinted window.
         Factor of > 1 requires an empirical calibration with a reference light source."""
         return self._window_factor
 
     @window_factor.setter
-    def window_factor(self, factor=1):
+    def window_factor(self, factor: float = 1) -> None:
         if factor < 1:
             raise ValueError(
                 "window transmission factor must be a value of 1.0 or greater"
