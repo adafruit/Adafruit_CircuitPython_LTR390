@@ -7,7 +7,8 @@ import time
 import board
 from adafruit_ltr390 import LTR390, MeasurementDelay, Resolution, Gain
 
-i2c = board.I2C()
+i2c = board.I2C()  # uses board.SCL and board.SDA
+# i2c = board.STEMMA_I2C()  # For using the built-in STEMMA QT connector on a microcontroller
 ltr = LTR390(i2c)
 
 # ltr.resolution = Resolution.RESOLUTION_16BIT
