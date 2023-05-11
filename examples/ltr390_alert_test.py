@@ -16,7 +16,6 @@ ltr.high_threshold = THRESHOLD_VALUE
 ltr.enable_alerts(True, UV, 1)
 
 while True:
-
     if ltr.threshold_passed:
         print("UV:", ltr.uvs)
         print("threshold", THRESHOLD_VALUE, "passed!")

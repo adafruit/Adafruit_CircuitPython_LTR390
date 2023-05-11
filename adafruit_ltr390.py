@@ -64,7 +64,8 @@ UV = 1
 
 class UnalignedStruct(Struct):
     """Class for reading multi-byte data registers with a data length less than the full bitwidth
-    of the registers. Most registers of this sort are left aligned to preserve the sign bit"""
+    of the registers. Most registers of this sort are left aligned to preserve the sign bit
+    """
 
     def __init__(self, register_address, struct_format, bitwidth, length):
         super().__init__(register_address, struct_format)
@@ -294,7 +295,6 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
     def __init__(self, i2c: I2C, address: int = _DEFAULT_I2C_ADDR) -> None:
         self.i2c_device = i2c_device.I2CDevice(i2c, address)
         if self._id_reg != 0xB2:
-
             raise RuntimeError("Unable to find LTR390; check your wiring")
 
         self._mode_cache = None
@@ -439,7 +439,8 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
     def window_factor(self) -> float:
         """Window transmission factor (Wfac) for UVI and Lux calculations.
         A factor of 1 (default) represents no window or clear glass; > 1 for a tinted window.
-        Factor of > 1 requires an empirical calibration with a reference light source."""
+        Factor of > 1 requires an empirical calibration with a reference light source.
+        """
         return self._window_factor
 
     @window_factor.setter
