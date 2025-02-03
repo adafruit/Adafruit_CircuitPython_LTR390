@@ -24,3 +24,12 @@ Be alerted when the measured value passes a high or low threshold
 .. literalinclude:: ../examples/ltr390_alert_test.py
     :caption: examples/ltr390_alert_test.py
     :linenos:
+
+DisplayIO Simpletest
+---------------------
+
+This is a simple test for boards with built-in display.
+
+.. literalinclude:: ../examples/ltr390_displayio_simpletest.py
+    :caption: examples/ltr390_displayio_simpletest.py
+    :linenos:
