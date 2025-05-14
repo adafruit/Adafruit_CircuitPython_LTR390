@@ -28,16 +28,18 @@ Implementation Notes
 * Adafruit's Register library: https://github.com/adafruit/Adafruit_CircuitPython_Register
 """
 
+from struct import pack_into, unpack_from
 from time import sleep
-from struct import unpack_from, pack_into
-from micropython import const
+
 from adafruit_bus_device import i2c_device
-from adafruit_register.i2c_struct import ROUnaryStruct, Struct
+from adafruit_register.i2c_bit import ROBit, RWBit
 from adafruit_register.i2c_bits import RWBits
-from adafruit_register.i2c_bit import RWBit, ROBit
+from adafruit_register.i2c_struct import ROUnaryStruct, Struct
+from micropython import const
 
 try:
     from typing import Iterable, Optional, Tuple, Type
+
     from busio import I2C
 except ImportError:
     pass
@@ -104,9 +106,7 @@ class CV:
     @classmethod
     def add_values(
         cls,
-        value_tuples: Iterable[
-            Tuple[str, int, str, Optional[float], int, Optional[float]]
-        ],
+        value_tuples: Iterable[Tuple[str, int, str, Optional[float], int, Optional[float]]],
     ) -> None:
         """Add CV values to the class"""
         cls.string = {}
@@ -336,7 +336,7 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
 
     @_mode.setter
     def _mode(self, value: bool) -> None:
-        if not value in [ALS, UV]:
+        if value not in {ALS, UV}:
             raise AttributeError("Mode must be ALS or UV")
         if self._mode_cache != value:
             self._mode_bit = value
@@ -431,8 +431,7 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
     def lux(self) -> float:
         """Read light level and return calculated Lux value."""
         return (
-            (self.light * 0.6)
-            / (Gain.factor[self.gain] * Resolution.integration[self.resolution])
+            (self.light * 0.6) / (Gain.factor[self.gain] * Resolution.integration[self.resolution])
         ) * self._window_factor
 
     @property
@@ -446,7 +445,5 @@ class LTR390:  # pylint:disable=too-many-instance-attributes
     @window_factor.setter
     def window_factor(self, factor: float = 1) -> None:
         if factor < 1:
-            raise ValueError(
-                "window transmission factor must be a value of 1.0 or greater"
-            )
+            raise ValueError("window transmission factor must be a value of 1.0 or greater")
         self._window_factor = factor

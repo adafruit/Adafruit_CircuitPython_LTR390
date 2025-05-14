@@ -3,8 +3,10 @@
 # SPDX-License-Identifier: Unlicense
 # pylint:disable=unused-import
 import time
+
 import board
-from adafruit_ltr390 import LTR390, UV, ALS
+
+from adafruit_ltr390 import ALS, LTR390, UV
 
 THRESHOLD_VALUE = 100
 
