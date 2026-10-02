@@ -28,7 +28,7 @@ Implementation Notes
 * Adafruit's Register library: https://github.com/adafruit/Adafruit_CircuitPython_Register
 """
 
-from struct import pack_into, unpack_from
+from struct import calcsize, pack_into, unpack_from
 from time import sleep
 
 from adafruit_bus_device import i2c_device
@@ -73,6 +73,8 @@ class UnalignedStruct(Struct):
         super().__init__(register_address, struct_format)
         self._width = bitwidth
         self._num_bytes = length
+        self._buffer = bytearray(1 + calcsize(struct_format))
+        self._buffer[0] = register_address
 
     def __get__(
         self,
@@ -80,24 +82,24 @@ class UnalignedStruct(Struct):
         objtype: Optional[Type["LTR390"]] = None,
     ) -> int:
         # read bytes into buffer at correct alignment
-        raw_value = unpack_from(self.format, self.buffer, offset=1)[0]
+        raw_value = unpack_from(self.format, self._buffer, offset=1)[0]
 
         with obj.i2c_device as i2c:
             i2c.write_then_readinto(
-                self.buffer,
-                self.buffer,
+                self._buffer,
+                self._buffer,
                 out_start=0,
                 out_end=1,
                 in_start=2,  # right aligned
                 # in_end=4 # right aligned
             )
-        raw_value = unpack_from(self.format, self.buffer, offset=1)[0]
+        raw_value = unpack_from(self.format, self._buffer, offset=1)[0]
         return raw_value >> 8
 
     def __set__(self, obj: Optional["LTR390"], value: int) -> None:
-        pack_into(self.format, self.buffer, 1, value)
+        pack_into(self.format, self._buffer, 1, value)
         with obj.i2c_device as i2c:
-            i2c.write(self.buffer)
+            i2c.write(self._buffer)
 
 
 class CV:
